@@ -26,18 +26,35 @@ module.exports = {
     },
 
     // nome, data_nasc, cpf, sexo, estado_civil, email, telefone
-    inserir: (nome, data_nasc, cpf, sexo, estado_civil, email, telefone)=> {
-        return new Promise((aceito, rejeitado)=> {
-            db.query('INSERT INTO pessoa (nome, data_nasc, cpf, sexo, estado_civil, email, telefone) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [nome, data_nasc, cpf, sexo, estado_civil, email, telefone],
-                (error, results)=>{
-                    if(error){ rejeitado(error); return; }
-                    aceito(results.insertId);
+    inserir: (nome, data_nasc, cpf, sexo, estado_civil, email, telefone) => {
+        return new Promise((aceito, rejeitado) => {
+            // Primeiro, verifica se o CPF já existe
+            db.query('SELECT COUNT(*) AS count FROM pessoa WHERE cpf = ?', [cpf], (error, results) => {
+                if (error) {
+                    rejeitado(error);
+                    return;
                 }
-            );
+    
+                if (results[0].count > 0) {
+                    rejeitado(new Error('CPF já existe no banco de dados.'));
+                    return;
+                }
+    
+                // Se o CPF não existir, insere o novo registro
+                db.query(
+                    'INSERT INTO pessoa (nome, data_nasc, cpf, sexo, estado_civil, email, telefone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [nome, data_nasc, cpf, sexo, estado_civil, email, telefone],
+                    (error, results) => {
+                        if (error) {
+                            rejeitado(error);
+                            return;
+                        }
+                        aceito(results.insertId);
+                    }
+                );
+            });
         });
     },
-
     alterar: (id, nome, data_nasc, cpf, sexo, estado_civil, email, telefone)=> {
         return new Promise((aceito, rejeitado)=> {
             db.query('UPDATE pessoa SET nome = ?, data_nasc = ? , cpf = ?, sexo = ?, estado_civil = ?, email = ?,telefone = ? WHERE id = ?', 
